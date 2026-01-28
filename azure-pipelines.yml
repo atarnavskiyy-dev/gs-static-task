@@ -1,0 +1,24 @@
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  BUCKET_NAME: "gs-static-task-atarnavskyi"
+
+steps:
+- checkout: self
+
+- task: DownloadSecureFile@1
+  name: gcpkey
+  inputs:
+    secureFile: "REPLACE_WITH_YOUR_KEY.json"
+
+- bash: |
+    curl https://sdk.cloud.google.com | bash
+    source $HOME/google-cloud-sdk/path.bash.inc
+    gcloud auth activate-service-account --key-file $(gcpkey.secureFilePath)
+    gsutil -m cp index.html gs://$(BUCKET_NAME)
+    gsutil -m cp error.html gs://$(BUCKET_NAME)
+  displayName: "Deploy to GCS"
