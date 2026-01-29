@@ -13,7 +13,7 @@ steps:
 - task: DownloadSecureFile@1
   name: gcpkey
   inputs:
-    secureFile: "REPLACE_WITH_YOUR_KEY.json"
+    secureFile: "project-9f0f9e8d-641e-4ebc-9d4-c5aa91c17228.json"
 
 - bash: |
     curl https://sdk.cloud.google.com | bash
