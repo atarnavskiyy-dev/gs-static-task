@@ -1,27 +1,22 @@
 - bash: |
     set -euxo pipefail
 
-    echo "Agent: $(uname -a)"
-    echo "Secure file path: $(gcpkey.secureFilePath)"
+    echo "Using secure file:"
     ls -la "$(gcpkey.secureFilePath)"
 
-    # retry helper
-    retry() { for i in 1 2 3; do "$@" && break || (echo "retry $i failed" && sleep 5); done }
+    # Install Google Cloud CLI without apt
+    curl -fsSL -o gcloud.tar.gz https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-467.0.0-linux-x86_64.tar.gz
+    tar -xzf gcloud.tar.gz
+    ./google-cloud-sdk/install.sh --quiet
+    source ./google-cloud-sdk/path.bash.inc
 
-    retry sudo apt-get update
-    retry sudo apt-get install -y ca-certificates curl gnupg apt-transport-https
+    gcloud --version
+    gsutil --version
 
-    curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
-      | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
-
-    echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
-      | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
-
-    retry sudo apt-get update
-    retry sudo apt-get install -y google-cloud-cli google-cloud-cli-gsutil
-
+    # Auth
     gcloud auth activate-service-account --key-file "$(gcpkey.secureFilePath)"
 
+    # Deploy
     gsutil -m cp index.html "gs://$(BUCKET_NAME)/index.html"
     gsutil -m cp error.html "gs://$(BUCKET_NAME)/error.html"
   displayName: "Deploy to GCS"
