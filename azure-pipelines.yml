@@ -1,10 +1,29 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  BUCKET_NAME: "gs-static-task-atarnavskiyy"
+
+steps:
+- checkout: self
+
+- task: DownloadSecureFile@1
+  name: gcpkey
+  inputs:
+    secureFile: "project-9f0f9e8d-641e-4ebc-9d4-c5aa91c17228.json"
+
 - bash: |
     set -euxo pipefail
 
     echo "Using secure file:"
     ls -la "$(gcpkey.secureFilePath)"
 
-    # Install Google Cloud CLI without apt
+    # Install Google Cloud CLI without apt (stable)
     curl -fsSL -o gcloud.tar.gz https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-467.0.0-linux-x86_64.tar.gz
     tar -xzf gcloud.tar.gz
     ./google-cloud-sdk/install.sh --quiet
