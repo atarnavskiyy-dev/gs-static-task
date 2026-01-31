@@ -1,26 +1,15 @@
-trigger:
-- main
-
-pool:
-  vmImage: ubuntu-latest
-
-variables:
-  BUCKET_NAME: "gs-static-task-atarnavskiyy"
-  # PROJECT_ID: "твій-gcp-project-id"   # опціонально, якщо хочеш
-
-steps:
-- checkout: self
-
-- task: DownloadSecureFile@1
-  name: gcpkey
-  inputs:
-    secureFile: "project-9f0f9e8d-641e-4ebc-9d4-c5aa91c17228.json"
-
 - bash: |
     set -euxo pipefail
 
-    sudo apt-get update
-    sudo apt-get install -y ca-certificates curl gnupg apt-transport-https
+    echo "Agent: $(uname -a)"
+    echo "Secure file path: $(gcpkey.secureFilePath)"
+    ls -la "$(gcpkey.secureFilePath)"
+
+    # retry helper
+    retry() { for i in 1 2 3; do "$@" && break || (echo "retry $i failed" && sleep 5); done }
+
+    retry sudo apt-get update
+    retry sudo apt-get install -y ca-certificates curl gnupg apt-transport-https
 
     curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
       | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
@@ -28,12 +17,10 @@ steps:
     echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
       | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
 
-    sudo apt-get update
-    sudo apt-get install -y google-cloud-cli google-cloud-cli-gsutil
+    retry sudo apt-get update
+    retry sudo apt-get install -y google-cloud-cli google-cloud-cli-gsutil
 
     gcloud auth activate-service-account --key-file "$(gcpkey.secureFilePath)"
-
-    # gcloud config set project "$(PROJECT_ID)"   # якщо додаси PROJECT_ID
 
     gsutil -m cp index.html "gs://$(BUCKET_NAME)/index.html"
     gsutil -m cp error.html "gs://$(BUCKET_NAME)/error.html"
