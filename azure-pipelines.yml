@@ -1,34 +1,41 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  BUCKET_NAME: gs-static-task-atarnavskiyy
+
+steps:
+- checkout: self
+
+- task: DownloadSecureFile@1
+  name: gcpkey
+  inputs:
+    secureFile: project-9f0f9e8d-641e-4ebc-9d4-c5aa91c17228.json
+
 - bash: |
     set -euxo pipefail
 
-    echo "== Check secure file =="
-    echo "$(gcpkey.secureFilePath)"
+    echo "Secure file:"
     ls -la "$(gcpkey.secureFilePath)"
 
-    echo "== Download gcloud =="
     curl -fL --retry 3 --retry-delay 3 \
       -o gcloud.tar.gz \
       https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-467.0.0-linux-x86_64.tar.gz
 
-    echo "== Verify archive =="
-    file gcloud.tar.gz
-    tar -tzf gcloud.tar.gz | head -n 5
-
-    echo "== Install gcloud =="
     tar -xzf gcloud.tar.gz
     ./google-cloud-sdk/install.sh --quiet
     source ./google-cloud-sdk/path.bash.inc
 
-    echo "== Versions =="
     gcloud --version
     gsutil --version
 
-    echo "== Auth =="
     gcloud auth activate-service-account --key-file "$(gcpkey.secureFilePath)"
-    gcloud auth list
 
-    echo "== Deploy =="
-    ls -la
     gsutil -m cp index.html "gs://$(BUCKET_NAME)/index.html"
     gsutil -m cp error.html "gs://$(BUCKET_NAME)/error.html"
-  displayName: "Deploy to GCS"
+  displayName: Deploy to GCS
